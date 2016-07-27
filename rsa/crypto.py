@@ -4,6 +4,7 @@ from random import SystemRandom
 
 from .. import modular
 from .. import prime
+from .. import warn
 
 sr = SystemRandom()
 
@@ -52,21 +53,34 @@ class Cipher(object):
         d = modular.modinv(e, phi)
         return cls(n, e, d)
 
-    def encrypt(self, inf, outf):
+    def encrypt(self, val):
+        if val >= self.n or val <= 1:
+            raise ValueError('value outside domain')
+        return pow(val, self.e, self.n)
+
+    def decrypt(self, val):
+        if not self.is_private():
+            raise ValueError('Can\'t decrypt with public-only key')
+        return pow(val, self.d, self.n)
+
+    def bytewise_encrypt(self, inf, outf):
+        warn.bad_sec_practice('bytewise encryption vulnerable to frequency analysis')
+        warnings.warn
         while True:
             ch = inf.read(1)
             if not ch:
                 break
             x = ord(ch)
-            y = pow(x, self.e, self.n)
+            y = self.encrypt(x)
             outf.write('%d\n'%(y,))
         outf.flush()
 
-    def decrypt(self, inf, outf):
+    def bytewise_decrypt(self, inf, outf):
+        warn.bad_sec_practice('bytewise encryption vulnerable to frequency analysis')
         if not self.is_private():
             raise ValueError('Can\'t decrypt with public-only key')
         for line in inf:
             y = int(line.strip())
-            x = pow(y, self.d, self.n)
+            x = self.decrypt(y)
             outf.write(chr(x))
         outf.flush()
